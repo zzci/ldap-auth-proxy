@@ -1,11 +1,9 @@
 use crate::api_client::ApiClient;
 use anyhow::{anyhow, Result};
-use bytes::{Buf, BufMut, BytesMut};
-use rasn::ber::{de::Decoder, enc::Encoder};
-use rasn::{Decode, Encode};
+use bytes::{Buf, BytesMut};
 use rasn_ldap::{
-    BindRequest, BindResponse, LdapMessage, LdapResult as LdapResultType, MessageId, ProtocolOp,
-    ResultCode, SearchRequest, SearchResultDone, UnbindRequest,
+    BindRequest, BindResponse, LdapMessage, LdapResult as LdapResultType, LdapString, MessageId,
+    ProtocolOp, ResultCode, SearchRequest, SearchResultDone,
 };
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -56,7 +54,8 @@ impl LdapHandler {
 
                         if let Some(resp_msg) = response {
                             // Check if this is an unbind (we should close after sending response)
-                            let is_unbind = matches!(resp_msg.protocol_op, ProtocolOp::UnbindRequest(_));
+                            let is_unbind =
+                                matches!(resp_msg.protocol_op, ProtocolOp::UnbindRequest(_));
 
                             if let Err(e) = self.send_response(&mut stream, resp_msg).await {
                                 error!("Error sending response to {}: {}", addr, e);
@@ -95,7 +94,8 @@ impl LdapHandler {
             Ok(message) => {
                 // Calculate how many bytes were consumed
                 // We need to re-encode to find the exact length
-                let encoded = rasn::ber::encode(&message).map_err(|e| anyhow!("Encode error: {:?}", e))?;
+                let encoded =
+                    rasn::ber::encode(&message).map_err(|e| anyhow!("Encode error: {:?}", e))?;
                 let consumed = encoded.len();
                 buffer.advance(consumed);
                 Ok(Some(message))
@@ -171,11 +171,12 @@ impl LdapHandler {
     }
 
     async fn handle_bind(&self, message_id: MessageId, bind_req: BindRequest) -> LdapMessage {
-        let dn = String::from_utf8_lossy(&bind_req.name).to_string();
+        // LdapString implements Deref to String, so we can use as_str()
+        let dn = bind_req.name.as_str();
         info!("Bind request for DN: {}", dn);
 
         // Extract username from DN
-        let username = self.extract_username_from_dn(&dn);
+        let username = self.extract_username_from_dn(dn);
 
         // Extract password from authentication choice
         let password = match &bind_req.authentication {
@@ -224,7 +225,7 @@ impl LdapHandler {
     }
 
     fn handle_search(&self, message_id: MessageId, search_req: SearchRequest) -> LdapMessage {
-        let base_dn = String::from_utf8_lossy(&search_req.base_object).to_string();
+        let base_dn = search_req.base_object.as_str();
         debug!("Search request for base DN: {}", base_dn);
 
         // We don't support search operations - just return done with no results
@@ -238,19 +239,15 @@ impl LdapHandler {
         result_code: ResultCode,
         message: &str,
     ) -> LdapMessage {
-        let bind_response = BindResponse {
+        let bind_response = BindResponse::new(
             result_code,
-            matched_dn: bytes::Bytes::new().into(),
-            diagnostic_message: bytes::Bytes::from(message.to_string()).into(),
-            referral: None,
-            server_sasl_creds: None,
-        };
+            LdapString::from(""),
+            LdapString::from(message),
+            None,
+            None,
+        );
 
-        LdapMessage {
-            message_id,
-            protocol_op: ProtocolOp::BindResponse(bind_response),
-            controls: None,
-        }
+        LdapMessage::new(message_id, ProtocolOp::BindResponse(bind_response))
     }
 
     fn create_search_done_response(
@@ -259,18 +256,14 @@ impl LdapHandler {
         result_code: ResultCode,
         message: &str,
     ) -> LdapMessage {
-        let search_done = SearchResultDone(LdapResultType {
+        let ldap_result = LdapResultType::new(
             result_code,
-            matched_dn: bytes::Bytes::new().into(),
-            diagnostic_message: bytes::Bytes::from(message.to_string()).into(),
-            referral: None,
-        });
+            LdapString::from(""),
+            LdapString::from(message),
+        );
+        let search_done = SearchResultDone(ldap_result);
 
-        LdapMessage {
-            message_id,
-            protocol_op: ProtocolOp::SearchResultDone(search_done),
-            controls: None,
-        }
+        LdapMessage::new(message_id, ProtocolOp::SearchResDone(search_done))
     }
 
     fn create_unsupported_response(&self, message_id: MessageId) -> LdapMessage {
@@ -314,7 +307,8 @@ impl LdapHandler {
     }
 
     async fn send_response(&self, stream: &mut TcpStream, message: LdapMessage) -> Result<()> {
-        let encoded = rasn::ber::encode(&message).map_err(|e| anyhow!("Encode error: {:?}", e))?;
+        let encoded =
+            rasn::ber::encode(&message).map_err(|e| anyhow!("Encode error: {:?}", e))?;
 
         stream.write_all(&encoded).await?;
         stream.flush().await?;
