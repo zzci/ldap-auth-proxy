@@ -7,6 +7,7 @@ use config::Config;
 use ldap_handler::LdapHandler;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::signal;
 use tracing::{error, info, Level};
 use tracing_subscriber::EnvFilter;
 
@@ -50,19 +51,55 @@ async fn main() -> anyhow::Result<()> {
 
     info!("LDAP server listening on {}", bind_addr);
 
-    // Accept connections
+    // Accept connections with graceful shutdown
     loop {
-        match listener.accept().await {
-            Ok((stream, addr)) => {
-                let handler = ldap_handler.clone();
-
-                tokio::spawn(async move {
-                    handler.handle_connection(stream, addr).await;
-                });
+        tokio::select! {
+            // Handle shutdown signals
+            _ = shutdown_signal() => {
+                info!("Received shutdown signal, exiting...");
+                break;
             }
-            Err(e) => {
-                error!("Failed to accept connection: {}", e);
+            // Accept new connections
+            result = listener.accept() => {
+                match result {
+                    Ok((stream, addr)) => {
+                        let handler = ldap_handler.clone();
+                        tokio::spawn(async move {
+                            handler.handle_connection(stream, addr).await;
+                        });
+                    }
+                    Err(e) => {
+                        error!("Failed to accept connection: {}", e);
+                    }
+                }
             }
         }
+    }
+
+    info!("LDAP server stopped");
+    Ok(())
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
     }
 }
