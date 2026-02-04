@@ -42,10 +42,7 @@ async fn main() -> anyhow::Result<()> {
     let api_client = Arc::new(ApiClient::new(config.api.clone())?);
 
     // Create LDAP handler
-    let ldap_handler = Arc::new(LdapHandler::new(
-        api_client,
-        config.server.base_dn.clone(),
-    ));
+    let ldap_handler = Arc::new(LdapHandler::new(api_client));
 
     // Bind to address
     let bind_addr = format!("{}:{}", config.server.bind_address, config.server.port);

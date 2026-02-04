@@ -12,15 +12,11 @@ use tracing::{debug, error, info, warn};
 
 pub struct LdapHandler {
     api_client: Arc<ApiClient>,
-    base_dn: String,
 }
 
 impl LdapHandler {
-    pub fn new(api_client: Arc<ApiClient>, base_dn: String) -> Self {
-        Self {
-            api_client,
-            base_dn,
-        }
+    pub fn new(api_client: Arc<ApiClient>) -> Self {
+        Self { api_client }
     }
 
     pub async fn handle_connection(&self, mut stream: TcpStream, addr: std::net::SocketAddr) {
@@ -337,7 +333,7 @@ mod tests {
         };
 
         let api_client = Arc::new(ApiClient::new(config).unwrap());
-        LdapHandler::new(api_client, "dc=example,dc=com".to_string())
+        LdapHandler::new(api_client)
     }
 
     #[test]
