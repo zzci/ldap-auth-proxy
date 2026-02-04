@@ -1,0 +1,41 @@
+[package]
+name = "ldap-auth-proxy"
+version = "0.1.0"
+edition = "2021"
+description = "LDAP authentication proxy that forwards auth requests to a remote API"
+authors = ["Your Name"]
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# LDAP protocol parsing
+rasn = "0.22"
+rasn-ldap = "0.22"
+
+# HTTP client for API calls
+reqwest = { version = "0.12", features = ["json"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Configuration
+config = "0.14"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Error handling
+anyhow = "1"
+thiserror = "1"
+
+# Async utilities
+bytes = "1"
+
+[dev-dependencies]
+# For mock API server example
+hyper = { version = "1", features = ["server", "http1"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
