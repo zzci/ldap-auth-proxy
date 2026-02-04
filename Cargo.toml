@@ -10,8 +10,8 @@ authors = ["Your Name"]
 tokio = { version = "1", features = ["full"] }
 
 # LDAP protocol parsing
-rasn = "0.22"
-rasn-ldap = "0.22"
+rasn = "0.28"
+rasn-ldap = "0.28"
 
 # HTTP client for API calls (using rustls to avoid OpenSSL dependency)
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
