@@ -3,8 +3,8 @@
 [server]
 # Address to bind the LDAP server
 bind_address = "0.0.0.0"
-# Port to listen on (389 is standard LDAP port, use 3389 for non-root)
-port = 3389
+# Port to listen on (389 is standard LDAP port, use 3890 for non-root)
+port = 3890
 # Base DN for the LDAP directory
 base_dn = "dc=example,dc=com"
 

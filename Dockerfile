@@ -44,7 +44,7 @@ RUN chown -R ldap:ldap /app
 USER ldap
 
 # Expose LDAP port
-EXPOSE 3389
+EXPOSE 3890
 
 # Run the binary
 CMD ["/app/ldap-auth-proxy"]

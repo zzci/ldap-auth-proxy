@@ -52,7 +52,7 @@ fn default_bind_address() -> String {
 }
 
 fn default_port() -> u16 {
-    389
+    3890
 }
 
 fn default_base_dn() -> String {

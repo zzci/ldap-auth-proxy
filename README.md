@@ -26,7 +26,7 @@ cargo build --release
 ```toml
 [server]
 bind_address = "0.0.0.0"
-port = 3389  # 使用非特权端口，或使用 389 需要 root 权限
+port = 3890  # 使用非特权端口，或使用 389 需要 root 权限
 base_dn = "dc=example,dc=com"
 
 [api]
@@ -54,10 +54,10 @@ cargo run --release
 
 ```bash
 # 使用 DN 格式
-ldapsearch -H ldap://localhost:3389 -D "uid=admin,ou=users,dc=example,dc=com" -w admin123 -b "dc=example,dc=com"
+ldapsearch -H ldap://localhost:3890 -D "uid=admin,ou=users,dc=example,dc=com" -w admin123 -b "dc=example,dc=com"
 
 # 使用简单用户名
-ldapsearch -H ldap://localhost:3389 -D "admin" -w admin123 -b "dc=example,dc=com"
+ldapsearch -H ldap://localhost:3890 -D "admin" -w admin123 -b "dc=example,dc=com"
 ```
 
 ## 配置说明
@@ -89,7 +89,7 @@ ldapsearch -H ldap://localhost:3389 -D "admin" -w admin123 -b "dc=example,dc=com
 也可以使用环境变量配置，格式为 `LDAP_PROXY__<SECTION>__<KEY>`：
 
 ```bash
-export LDAP_PROXY__SERVER__PORT=3389
+export LDAP_PROXY__SERVER__PORT=3890
 export LDAP_PROXY__API__URL=http://localhost:8080/auth
 ```
 
